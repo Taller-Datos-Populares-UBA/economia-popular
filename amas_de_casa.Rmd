@@ -1,0 +1,241 @@
+---
+title: "Amas de Casa en la Economía Popular"
+author: "Ariel Salgado"
+date: '2023-03-31'
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE}
+# Cargamos dataset y paquete de graficación
+library(tidyverse)
+load('base_ep.RData')
+``` 
+
+# Definición del grupo
+
+Para construir nuestro grupo de interés, tomamos el último año y trimestre para el cual disponemos de información sobre pobreza. Luego, identificamos a personas EP como aquellas que son cuentapropistas no profesionales ó trabajadores familiares sin remuneración. Luego, generamos dos clasificaciones para identificar a una persona como "en familia EP". Si el JEFE de su familia es EP, decimos que la persona es EPJ. Si alguien en su familia es EP (cualquiera, jefe o no), decimos que la persona es EPA. Filtramos la base para quedarnos con la población de interés: personas que hayan declarado como su cateogría de inactividad "AMA DE CASA" (sean del género que sean).
+
+
+```{r message=FALSE, warning=FALSE}
+df <- individual_03.hoy %>%
+  filter(!is.na(situacion)) %>%
+  filter(YEAR == max(YEAR)) %>%
+  filter(TRIMESTER == max(TRIMESTER)) %>%
+  mutate(ES_EP = ES_CUENTAPROPISTA_NO_PROFESIONAL | ES_TFSR) %>%
+  group_by(CODUSU,NRO_HOGAR) %>%
+  mutate(ES_EP_JEFE = ES_EP[ROL_HOGAR == 'JEFE']) %>%
+  mutate(ES_EP_ANY = any(ES_EP)) %>%
+  filter(CATEGORIA_INACTIVO == 'AMA DE CASA')
+```
+
+Aquí se puede explorar un poco la base
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  arrange(CODUSU,NRO_HOGAR)
+```
+
+
+# Análisis general de las personas que son amas de casa
+
+Aquí van algunos gráficos descriptivos de la basa de personas AMA de CASA
+
+
+##### División por género
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=SEXO,y=f)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+
+Calculando el total de personas en la misma situación usando PONDIH, tenemos un 85% de mujeres y un 15% de varones en situación AMA DE CASA
+
+###### División por región
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(REGION) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(REGION) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=REGION,y=f)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+El grueso de las personas provienen de GBA (no muy asombroso).
+
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(REGION,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(REGION,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=REGION,y=f,fill=SEXO)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+El porcentaje de AMAS DE CASA mujeres varía entre el 81% (GBA) y el 90% (NEA)
+
+# Separación por situación económica
+
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=situacion,y=f)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+El 43% de las AMAS DE CASA no son pobres, el 38% son pobres, de los cuales el 18% es indigente. Vale recordar que estas definiciones representan: INDIGENTE -> ingreso familiar menor a canasta básica alimentaria, POBRE -> ingreso familiar entre canasta alimentaria y canasta total. No pobre por encima de ambas canastas.
+
+Si separamos por género:
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(situacion,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(situacion,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=situacion,y=f,fill=SEXO)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(SEXO,situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(SEXO,situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=SEXO,y=f,fill=situacion)) +
+  geom_bar(stat='identity') +
+  scale_y_continuous(name = 'Proporción de amas de casa') +
+  theme_minimal()
+```
+
+
+
+A partir de estos dos gráficos podemos formular las siguientes afirmaciones, siempre condicionales a que la persona es AMA DE CASA
+
+- Siempre es más probable ser mujer, aunque la probabilidad pasa de ser un 90-10 en pobres y no pobres, a un 70-30.
+- Si se es AMA DE CASA y VARON, lo más probable es ser INDIGENTE (36%), seguido de cerca por no pobre (32%) y pobre (30%). Si se es MUJER y AMA DE CASA lo más probable es no ser pobre (45%) seguido de cerca por pobre (40%), mientras que indigente baja a 15%.
+
+En la población indigente es más común encontrar AMAS DE CASA varones (30% contra 12%)
+
+# Separación por EP
+
+## Separación por EPJ
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(ES_EP_JEFE) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(ES_EP_JEFE) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=ES_EP_JEFE,y=N)) +
+  geom_bar(stat='identity')
+
+```
+
+
+Solo el 11% de las AMAS DE CASA pertenecen a hogares donde la persona en jefe es EP.
+
+Veamos como se combina esta categoría con la categoría económica y de género
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(ES_EP_JEFE,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(ES_EP_JEFE,SEXO) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=ES_EP_JEFE,y=f,fill=SEXO)) +
+  geom_bar(stat='identity')
+
+```
+
+
+
+La probabilidad de que el AMA DE CASA sea MUJER aumenta de 84% a 90% de hogares sin jefe EP a hogares con jefe EP (es decir, es más común ser mujer ama de casa si el jefe es EP).
+
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(ES_EP_JEFE,situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(ES_EP_JEFE,situacion) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=ES_EP_JEFE,y=f,fill=situacion)) +
+  geom_bar(stat='identity')
+
+```
+
+
+
+```{r message=FALSE, warning=FALSE}
+df %>%
+  group_by(situacion,ES_EP_JEFE) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N))
+df %>%
+  group_by(situacion,ES_EP_JEFE) %>%
+  summarise('N' = sum(PONDIH)) %>%
+  mutate('f' = N/sum(N)) %>%
+  ggplot(aes(x=situacion,y=f,fill=ES_EP_JEFE)) +
+  geom_bar(stat='identity')
+
+```
+
+
+
+Mientras que la probabilidad de que el jefe sea del hogar cambia poco dependiendo de la situación económica del hogar (8% a 13%), en hogares de la EP la amplia mayoría es pobre (47%).
+
